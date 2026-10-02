@@ -3,7 +3,7 @@ export function FiltersBar({ filters }: { filters: Filters }) {
   return (
     <form className="filters">
       <label>
-        GPU MODEL · SOURCE ID
+        GPU model · source ID
         <input
           name="gpu_model"
           list="gpu-model-suggestions"
@@ -21,7 +21,7 @@ export function FiltersBar({ filters }: { filters: Filters }) {
         </datalist>
       </label>
       <label>
-        FROM · UTC
+        From · UTC
         <input
           type="date"
           name="start"
@@ -29,7 +29,7 @@ export function FiltersBar({ filters }: { filters: Filters }) {
         />
       </label>
       <label>
-        BEFORE · UTC
+        Before · UTC
         <input
           type="date"
           name="end"
@@ -37,16 +37,14 @@ export function FiltersBar({ filters }: { filters: Filters }) {
         />
       </label>
       <label>
-        REGION
+        Region
         <input
           name="region"
           placeholder="All regions"
           defaultValue={filters.region || ""}
         />
       </label>
-      <button type="submit">
-        Apply filters <span>↗</span>
-      </button>
+      <button type="submit">Apply filters</button>
     </form>
   );
 }

@@ -16,14 +16,10 @@ export default async function Detail({
       <Link href="/orders" className="back">
         ← Order explorer
       </Link>
-      <Header
-        eyebrow="ORDER / EVIDENCE"
-        title="One order. Every bid."
-        description={id}
-      />
+      <Header eyebrow="Order evidence" title="Order details" description={id} />
       <Status result={r} />
       {!o ? (
-        <Empty message="This order is unavailable. Verify its identifier and API coverage." />
+        <Empty message="This order is unavailable. It may fall outside the current dataset." />
       ) : (
         <>
           <div className="metrics four">

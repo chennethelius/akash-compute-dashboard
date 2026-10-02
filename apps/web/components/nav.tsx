@@ -1,22 +1,23 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+const items = [
+  ["/market", "Market overview"],
+  ["/orders", "Order explorer"],
+  ["/providers", "Providers"],
+  ["/research", "Research"],
+];
 export function Nav() {
-  const path = usePathname();
+  const pathname = usePathname();
   return (
-    <nav>
-      {[
-        ["/market", "01", "Market overview"],
-        ["/orders", "02", "Order explorer"],
-        ["/providers", "03", "Providers"],
-        ["/research", "04", "Research"],
-      ].map(([href, n, label]) => (
+    <nav aria-label="Main navigation">
+      {items.map(([href, label]) => (
         <Link
-          className={path.startsWith(href) ? "active" : ""}
-          href={href}
           key={href}
+          href={href}
+          className={pathname.startsWith(href) ? "active" : ""}
+          aria-current={pathname.startsWith(href) ? "page" : undefined}
         >
-          <span>{n}</span>
           {label}
         </Link>
       ))}

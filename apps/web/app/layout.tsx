@@ -11,41 +11,29 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <aside className="sidebar">
-          <Link href="/market" className="brand">
-            <span className="brand-icon">▥</span>
-            <span>
-              COMPUTE<span className="brand-sub">MARKET RESEARCH</span>
-            </span>
-          </Link>
-          <div className="workspace-label">RESEARCH WORKBENCH</div>
+        <a className="skip-link" href="#main-content">
+          Skip to content
+        </a>
+        <header className="site-header">
+          <div className="masthead">
+            <Link href="/market" className="brand">
+              Compute Market<span className="brand-sub">Data & research</span>
+            </Link>
+            <div className="edition">
+              <span>Akash Network</span>
+              <span>Research preview</span>
+            </div>
+          </div>
           <Nav />
-          <div className="sidebar-bottom">
-            <span className="badge">PHASE 01</span>
-            <p>Akash microstructure laboratory</p>
-            <small>
-              Transparent market mechanics.
-              <br />
-              Reproducible research.
-            </small>
-          </div>
-        </aside>
-        <div className="workspace">
-          <div className="topbar">
-            <span>
-              Markets <span className="divider">/</span> Akash Network
-            </span>
-            <span className="topbar-note">OBSERVATIONS, NOT PREDICTIONS</span>
-          </div>
-          <main>{children}</main>
-          <footer>
-            COMPUTE MARKET RESEARCH{" "}
-            <span>
-              Akash is a microstructure laboratory, not a global GPU price
-              benchmark.
-            </span>
-          </footer>
-        </div>
+        </header>
+        <main id="main-content">{children}</main>
+        <footer>
+          <span>Compute Market Research</span>
+          <span>
+            Akash observations describe one marketplace, not the global GPU
+            market.
+          </span>
+        </footer>
       </body>
     </html>
   );

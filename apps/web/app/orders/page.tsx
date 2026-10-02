@@ -12,8 +12,8 @@ export default async function Orders({
   return (
     <>
       <Header
-        eyebrow="02 / ORDERS"
-        title="Inspect the market behind the chart."
+        eyebrow="Transactions"
+        title="Order explorer"
         description="Follow each resource request through its bids and provider selection."
       />
       <Status result={r} />

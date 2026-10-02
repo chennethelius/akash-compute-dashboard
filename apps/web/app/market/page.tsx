@@ -28,8 +28,8 @@ export default async function Market({
   return (
     <>
       <Header
-        eyebrow="01 / OVERVIEW"
-        title="The market, beneath the price."
+        eyebrow="Market data"
+        title="Market overview"
         description="Trace compute prices to competition, available supply, and the orders that formed them."
       />
       <Status result={s} />
@@ -76,7 +76,7 @@ export default async function Market({
           note="Capacity shares · 0–1 scale"
         />
       </div>
-      <div className="chart-grid">
+      <div className="chart-grid market-charts">
         <Panel
           title="Winning price over time"
           subtitle="Bundle USD / GPU-hour · median, p10, p90"

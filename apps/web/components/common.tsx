@@ -12,9 +12,7 @@ export function Header({
 }) {
   return (
     <header className="page-header">
-      <div className="eyebrow">
-        AKASH LABORATORY <span>/</span> {eyebrow}
-      </div>
+      <div className="eyebrow">{eyebrow}</div>
       <h1>{title}</h1>
       <p>{description}</p>
     </header>
@@ -23,18 +21,17 @@ export function Header({
 export function Status({ result }: { result: Result<unknown> }) {
   return (
     <div className={`status ${result.error ? "failure" : ""}`}>
-      <span className="status-dot" />
       <div>
         <strong>
           {result.error
-            ? "API unavailable"
+            ? "Data temporarily unavailable"
             : result.meta.mode === "demo"
-              ? "SYNTHETIC DEMO · Not market evidence"
+              ? "Synthetic demo · Not market evidence"
               : result.meta.label}
         </strong>
         <span>
           {result.error
-            ? `${result.error}. Check API_BASE_URL and backend health. No fallback data is shown.`
+            ? "The data source could not be reached. Please try again shortly; no substitute observations are shown."
             : result.meta.coverage_note}
         </span>
       </div>
@@ -51,13 +48,12 @@ export function Status({ result }: { result: Result<unknown> }) {
   );
 }
 export function Empty({
-  message = "No observations match this selection. Start ingestion or adjust your filters.",
+  message = "No observations match this selection. Try another date range or model.",
 }: {
   message?: string;
 }) {
   return (
     <div className="empty">
-      <span>∅</span>
       <h3>No observations yet</h3>
       <p>{message}</p>
     </div>
@@ -98,7 +94,7 @@ export function Panel({
           <h2>{title}</h2>
           {subtitle && <p>{subtitle}</p>}
         </div>
-        {href && <Link href={href}>Inspect orders ↗</Link>}
+        {href && <Link href={href}>Inspect orders</Link>}
       </div>
       {children}
     </section>
@@ -140,7 +136,7 @@ export function OrderTable({ rows }: { rows: Order[] }) {
                   className="mono accent"
                   href={`/orders/${encodeURIComponent(o.order_id)}`}
                 >
-                  {o.order_id.slice(-22)} ↗
+                  {o.order_id.slice(-22)}
                 </Link>
               </td>
               <td>

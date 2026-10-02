@@ -45,14 +45,14 @@ export default async function Research({
   return (
     <>
       <Header
-        eyebrow="04 / RESEARCH"
-        title="Questions first. Evidence next."
+        eyebrow="Analysis"
+        title="Research"
         description="Explore competing explanations for price formation. Each point links to its underlying order."
       />
       <Status result={r} />
       <FiltersBar filters={f} />
       <div className="research-note">
-        <span className="badge">EXPLORATORY</span>
+        <span className="badge">Exploratory</span>
         <p>
           These are descriptive associations. Hardware, location, resource
           bundles, and selection effects can confound comparisons. No causal

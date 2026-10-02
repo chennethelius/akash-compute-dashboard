@@ -26,27 +26,39 @@ export function Chart({
     if (!ref.current) return;
     const chart = echarts.init(ref.current, undefined, { renderer: "svg" });
     chart.setOption({
-      color: ["#59d5bd", "#7287f9", "#d6b77b", "#557388"],
+      color: ["#41634f", "#7a867a", "#a7a394", "#575e55"],
       backgroundColor: "transparent",
-      textStyle: { fontFamily: "Arial", color: "#93a3b5" },
-      tooltip: { trigger: scatter ? "item" : "axis" },
-      legend: { bottom: 0, textStyle: { color: "#93a3b5" }, icon: "roundRect" },
+      textStyle: {
+        fontFamily: "IBM Plex Sans",
+        color: "#6e746b",
+        fontSize: 12,
+      },
+      tooltip: {
+        trigger: scatter ? "item" : "axis",
+        backgroundColor: "#f7f6f2",
+        borderColor: "#d7d8cf",
+        borderWidth: 1,
+        padding: [12, 16],
+        textStyle: { color: "#252b27", fontSize: 12 },
+        extraCssText: "border-radius:2px;box-shadow:none;",
+      },
+      legend: { bottom: 0, textStyle: { color: "#6e746b" }, icon: "roundRect" },
       grid: { left: 52, right: 22, top: 24, bottom: 62 },
       xAxis: {
         type: scatter ? "value" : "category",
         data: labels,
-        axisLine: { lineStyle: { color: "#263343" } },
-        axisLabel: { color: "#7b8da2" },
+        axisLine: { lineStyle: { color: "#d7d8cf" } },
+        axisLabel: { color: "#74776e" },
         splitLine: { show: false },
       },
       yAxis: {
         type: "value",
         axisLabel: {
-          color: "#7b8da2",
+          color: "#74776e",
           formatter: percent ? "{value}%" : undefined,
         },
-        splitLine: { lineStyle: { color: "#1b2939" } },
-        scale: true,
+        splitLine: { lineStyle: { color: "#e6e6df" } },
+        scale: !bar,
       },
       series: scatter
         ? scatter.map((s) => ({
@@ -54,7 +66,7 @@ export function Chart({
             type: "scatter",
             symbolSize: 9,
             data: s.points,
-            itemStyle: { opacity: 0.7 },
+            itemStyle: { opacity: 0.8, borderColor: "#f7f6f2", borderWidth: 1 },
           }))
         : series?.map((s, i) => ({
             name: s.name,
@@ -62,11 +74,13 @@ export function Chart({
             data: s.values.map((v) =>
               v === null ? null : percent ? v * 100 : v,
             ),
+            barMaxWidth: 36,
+            itemStyle: bar ? { borderRadius: [1, 1, 0, 0] } : undefined,
             smooth: false,
             symbol: "none",
             lineStyle: {
               width: i ? 1.5 : 2.5,
-              type: i > 0 ? "dashed" : "solid",
+              type: i === 0 ? "solid" : i === 1 ? "dashed" : "dotted",
             },
             areaStyle: i === 0 ? { opacity: 0.04 } : undefined,
           })),

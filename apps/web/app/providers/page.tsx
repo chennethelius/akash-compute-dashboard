@@ -14,8 +14,8 @@ export default async function Providers({
   return (
     <>
       <Header
-        eyebrow="03 / PROVIDERS"
-        title="Who supplies the market?"
+        eyebrow="Supply"
+        title="Providers"
         description="Compare provider participation, allocated capacity, and award concentration."
       />
       <Status result={r} />
