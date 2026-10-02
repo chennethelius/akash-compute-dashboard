@@ -26,38 +26,38 @@ export function Chart({
     if (!ref.current) return;
     const chart = echarts.init(ref.current, undefined, { renderer: "svg" });
     chart.setOption({
-      color: ["#41634f", "#7a867a", "#a7a394", "#575e55"],
+      color: ["#bc352b", "#68605c", "#c48873", "#958c85"],
       backgroundColor: "transparent",
       textStyle: {
         fontFamily: "IBM Plex Sans",
-        color: "#6e746b",
+        color: "#716b69",
         fontSize: 12,
       },
       tooltip: {
         trigger: scatter ? "item" : "axis",
-        backgroundColor: "#f7f6f2",
-        borderColor: "#d7d8cf",
+        backgroundColor: "#ffffff",
+        borderColor: "#e3dedb",
         borderWidth: 1,
         padding: [12, 16],
-        textStyle: { color: "#252b27", fontSize: 12 },
+        textStyle: { color: "#262323", fontSize: 12 },
         extraCssText: "border-radius:2px;box-shadow:none;",
       },
-      legend: { bottom: 0, textStyle: { color: "#6e746b" }, icon: "roundRect" },
+      legend: { bottom: 0, textStyle: { color: "#716b69" }, icon: "roundRect" },
       grid: { left: 52, right: 22, top: 24, bottom: 62 },
       xAxis: {
         type: scatter ? "value" : "category",
         data: labels,
-        axisLine: { lineStyle: { color: "#d7d8cf" } },
-        axisLabel: { color: "#74776e" },
+        axisLine: { lineStyle: { color: "#e3dedb" } },
+        axisLabel: { color: "#756b66" },
         splitLine: { show: false },
       },
       yAxis: {
         type: "value",
         axisLabel: {
-          color: "#74776e",
+          color: "#756b66",
           formatter: percent ? "{value}%" : undefined,
         },
-        splitLine: { lineStyle: { color: "#e6e6df" } },
+        splitLine: { lineStyle: { color: "#eee9e5" } },
         scale: !bar,
       },
       series: scatter
@@ -66,7 +66,7 @@ export function Chart({
             type: "scatter",
             symbolSize: 9,
             data: s.points,
-            itemStyle: { opacity: 0.8, borderColor: "#f7f6f2", borderWidth: 1 },
+            itemStyle: { opacity: 0.8, borderColor: "#ffffff", borderWidth: 1 },
           }))
         : series?.map((s, i) => ({
             name: s.name,
