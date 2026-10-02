@@ -6,7 +6,9 @@ export default async function Detail({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id: routeId } = await params;
+  // Encoded slashes stay escaped in Next route parameters. Decode once before the API adapter re-encodes the full identifier.
+  const id = decodeURIComponent(routeId);
   const r = await orderDetail(id);
   const o = r.data;
   return (
@@ -67,9 +69,10 @@ export default async function Detail({
                     {o.bids.map((b, i) => (
                       <tr key={`${b.provider_id}-${i}`}>
                         <td>
-                          {b.provider_name && (
-                            <strong>{b.provider_name}</strong>
-                          )}
+                          {b.provider_name &&
+                            b.provider_name !== b.provider_id && (
+                              <strong>{b.provider_name}</strong>
+                            )}
                           <span className="block mono">{b.provider_id}</span>
                         </td>
                         <td className="mono">

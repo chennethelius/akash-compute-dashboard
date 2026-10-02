@@ -117,7 +117,9 @@ export async function timeseries(f: Filters) {
   );
 }
 export async function orders(f: Filters) {
-  return map<Order[]>(await get("orders", f), (rows: Raw[]) => rows.map(adaptOrder));
+  return map<Order[]>(await get("orders", f), (rows: Raw[]) =>
+    rows.map(adaptOrder),
+  );
 }
 export async function orderDetail(id: string) {
   return map<Order>(await get(`orders/${encodeURIComponent(id)}`), adaptOrder);

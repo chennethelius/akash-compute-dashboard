@@ -17,21 +17,21 @@ Normalized `price`, `median_price`, `lowest_bid`, `median_bid`, `highest_bid`, `
 | Endpoint | `data` shape / purpose |
 | --- | --- |
 | `GET /health` | Unwrapped process liveness: `status`, `mode`. Does not test database readiness. |
-| `GET /v1/coverage` | Raw block/snapshot counts, normalized order count, stream checkpoints (`name`, `height`, `updated_at`). Counts/checkpoints do not assert gap-free chain coverage. |
+| `GET /v1/coverage` | Raw block/snapshot counts, normalized order count, decoding status counts, stream checkpoints (`name`, `height`, `updated_at`). Counts/checkpoints do not assert gap-free chain coverage. |
 | `GET /v1/market/summary` | `active_gpus`, `available_gpus`, `total_gpus`, `utilization`, `active_providers`, `orders_24h`, `leases_24h`, `median_winning_price`, `median_bidders_per_order`, `provider_hhi`. Capacity comes from latest matching hourly row; prices and auction counts are nullable. |
 | `GET /v1/market/timeseries` | Array with `timestamp`, `gpu_model`, metric fields. Capacity rows additionally expose `observation_cutoff`, `provisional`, `freshness_minutes`, excluded-provider counts, `scope`, and `concentration_basis`. Unfiltered requests select aggregate rows, not sums of model/region rows. |
 | `GET /v1/orders` | Array: `id`, `created_at`, resource fields, `region`, `bid_count`, bid price summaries, `winner`; currently also includes detail fields. |
-| `GET /v1/orders/{id}` | Order plus `bids`, `attributes`, `provenance`, and `market_at_order`. Each bid includes `id`, `provider_id`, `provider_name`, `price`, `native_price` (live), `denom`, `created_at`, `state`, `is_winner`. Missing order returns 404. |
+| `GET /v1/orders/{id}` | Order plus `bids`, `leases`, `attributes`, `provenance`, and `market_at_order`. Each bid includes `id`, `provider_id`, `provider_name`, `price`, `native_price` (live), `denom`, `created_height`, `created_at`, `state`, `is_winner`, `provenance`. Leases expose provider, native winning price/denomination, creation height/time, nullable observed close time, and source provenance. Missing order returns 404. |
 | `GET /v1/providers` | Array: `id`, `name`, `region`, `gpu_model`, inventory counts, `wins`, `bid_count`, `average_bid`, `average_winning_price`, `win_rate`, `market_share`, `first_seen_at`, `last_seen_at`. |
 | `GET /v1/providers/{id}` | Single provider using same fields; missing provider returns 404. |
 | `GET /v1/research/observations` | Array: `order_id`, `timestamp`, `gpu_model`, `bidder_count`, `winning_price`, `utilization`, `provider_hhi`, `bid_spread`, `available_gpus`. Currently synthetic mode only. |
 | `GET /v1/exports/orders.csv` | Matching order/resource/bid-summary columns plus `data_mode`; potentially executable spreadsheet text is escaped. |
 
-Bid count is distinct observed providers bidding no later than the earliest recorded lease selection. It does not establish actual eligibility. Detail retains late bids for audit. Winner flags match recorded lease provider identities; lifecycle reconstruction and exact bid selection still require version-aware chain decoding.
+Bid count is distinct observed providers bidding no later than the earliest recorded lease selection, using block/phase/transaction/event ordering when source coordinates exist. It does not establish actual eligibility. Detail retains late bids for audit. Newly decoded winner flags match the selected bid identity including bseq; legacy rows lacking bid identity fall back to lease provider identity. Native prices are exact source strings; normalized USD may remain null.
 
 ## Intentional live limitations
 
-The chain job archives raw blocks/results and checkpoints; validated marketplace projection is not implemented. Accordingly, newly collected chains do not yet create normalized orders, bids, or leases. Research observations remain empty, order-time joins remain null, and provider wins/pricing/share statistics remain null. No regression or causal inference is exposed.
+The chain job archives raw blocks/results and checkpoints. A separate version-limited decode job now creates normalized orders, bids and leases from supported successful events and records explicit partial coverage. See `docs/decoder.md` for supported versions and the validated historical sample. Research observations remain empty, order-time joins remain null, and provider wins/pricing/share statistics remain null. No regression or causal inference is exposed.
 
 Inventory collection stores provider-level totals with unknown `gpu_model`; model and region hourly metrics are not yet computed. Fresh hourly metrics require online status, collection freshness, and source `lastCheckDate` freshness. That source timestamp is a health-check proxy, not guaranteed inventory measurement time. Provider list inventory displays the latest observation in the selected interval; it is not itself a freshness-qualified market aggregate. Provider first/last seen denotes observation, not verified market entry/exit.
 

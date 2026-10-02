@@ -14,6 +14,7 @@ Run after migrations, with DATABASE_URL set and the Python package installed:
 ```sh
 python -m compute_market.jobs.cli inventory
 python -m compute_market.jobs.cli chain --rpc-url "$AKASH_RPC_URL" --start-height 10000000 --end-height 10000010
+python -m compute_market.jobs.cli decode --start-height 10000000 --end-height 10000010
 python -m compute_market.jobs.cli hourly --hour 2026-10-01T12:00:00+00:00
 ```
 
@@ -25,7 +26,7 @@ Inventory projections link to their raw response. Failed HTTP requests create no
 
 ## Still required before research use
 
-Version-aware Akash protobuf/message decoding, marketplace lifecycle projection, resource parsing, failed-transaction exclusion, sampled chain reconciliation, FX and measured block-interval provenance, actual eligible-provider attribution, model-specific inventory where available, and historical completeness audits. No Allium dependency or external price benchmark is included.
+Broader historical message/version coverage, authz/reopened-order resource reconstruction, FX and measured block-interval provenance, actual eligible-provider attribution, model-specific inventory where available, and historical completeness audits. The version-limited decoder now validates successful-only execution, native bid prices, requested resources, and selected lease identities against a small real sample. This is not a completed historical dataset. No Allium dependency or external price benchmark is included.
 
 ## Hosted worker
 

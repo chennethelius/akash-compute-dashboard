@@ -11,10 +11,11 @@ Implemented:
 - FastAPI with explicit synthetic demonstration mode and live database queries.
 - SQLAlchemy models and an initial Alembic migration for Postgres.
 - Restartable raw block/results archival and inventory snapshots with source freshness checks.
+- Version-limited marketplace decoding and replay, validated against real GPU auctions with native prices and transaction provenance.
 - A recurring inventory worker, capacity-only hourly metrics, and pure price/HHI/dispersion helpers.
 - Container definitions, optional local Compose, CI, and an application-only Akash deployment template for an external database.
 
-**Not yet implemented:** version-aware marketplace decoding, full historical backfill, historical FX ingestion, live price/competition/research feature aggregation, regressions, independent backup automation, or a public deployment. The chain job archives evidence; it does not populate normalized orders, bids, or leases. Live views show missing data rather than invented prices. Demo fixtures are synthetic, never written to the database, and cannot support research conclusions.
+**Not yet implemented:** full historical-version coverage/backfill, historical FX ingestion, live price/competition/research feature aggregation, regressions, independent backup automation, or a public deployment. Archival and decoding are separate jobs. The decoder supports typed marketplace v1 events and deployment resource messages v1beta3/v1beta4; the included real sample validates v1beta4. Unsupported events and missing antecedents remain explicit partial coverage. Synthetic demo fixtures are never written to research tables.
 
 No Neon connection, hosting account, funded Akash lease, or live collector is configured by default.
 
@@ -58,6 +59,22 @@ cd backend
 
 Environment variables must be exported or supplied by your process manager. Python commands do not automatically load the root `.env`; Docker Compose reads it. Keep credentials out of git and out of frontend public variables.
 
+## Inspect a real historical sample without hosting
+
+The repository includes 59 public block/result pairs from **two separate intervals**, about 5 MB of evidence. Their checksums and exact coverage are in `backend/tests/fixtures/akash/manifest.json`. They include a successful RTX3090 auction with two bidders and an unsuccessful P40 request. This is a selected validation sample, not a market-wide dataset.
+
+To load this evidence into a small, ignored SQLite preview database, run from the repository root:
+
+```sh
+mkdir -p .local
+export DATABASE_URL="sqlite:///$PWD/.local/observed.db"
+(cd backend && ../.venv/bin/alembic upgrade head)
+.venv/bin/python -m compute_market.jobs.sample --directory backend/tests/fixtures/akash
+DEMO_MODE=false .venv/bin/uvicorn compute_market.api.main:app --host 127.0.0.1 --port 8000
+```
+
+Stop a previous demo API before reusing port 8000. Start the frontend as above, then visit `/orders` or [the validated RTX3090 order](http://localhost:3000/orders/akashnet-2%2Fakash10czfq8xx8nh92ue7svg4t5ffs0lhsd6rxeaqwe%2F1790795508665%2F1%2F1). Replay is idempotent. Native prices retain their exact source strings; no USD conversion or historical capacity is invented. SQLite is only a preview/test option; production remains PostgreSQL. [Reconciliation details](docs/reconciliation.md).
+
 ## Data jobs
 
 These commands perform real network collection and require a configured database with migrations applied. Do not run them for the synthetic demo.
@@ -72,6 +89,10 @@ These commands perform real network collection and require a configured database
 # Explicit bounded historical archival; choose a node retaining these heights
 .venv/bin/python -m compute_market.jobs.cli chain \
   --rpc-url https://YOUR_ARCHIVE_RPC \
+  --start-height START_HEIGHT --end-height END_HEIGHT
+
+# Decode the same already archived contiguous range
+.venv/bin/python -m compute_market.jobs.cli decode \
   --start-height START_HEIGHT --end-height END_HEIGHT
 
 # Recompute a completed hour's capacity metrics
@@ -97,6 +118,8 @@ Offline Python tests use SQLite to verify application behavior. CI additionally 
 - [Architecture and parallel ownership](docs/architecture.md)
 - [Metric definitions and caveats](docs/methodology.md)
 - [API contract, units, and filter semantics](contracts/api.md)
+- [Real GPU-auction reconciliation](docs/reconciliation.md)
+- [Decoder scope and replay](docs/decoder.md)
 - [Source adapters and collection commands](docs/data-sources.md)
 - [Public hosting and data survival](docs/deployment.md)
 - [Research workflow](research/README.md)
