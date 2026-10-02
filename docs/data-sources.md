@@ -21,7 +21,7 @@ The example height is illustrative, not a guaranteed retained range. Specify an 
 
 Schedule inventory every ten minutes using cron or a worker. Scheduling is configuration to activate on a deployed host, not an already-running service. Run the hourly command for each completed UTC hour; reruns overwrite that version's derived row. Do not schedule a large backfill every ten minutes.
 
-Inventory projections link to their raw response. Failed HTTP requests create no capacity observation; they must be monitored as job failures. A successful response does not establish source freshness. The collector does not mark absent providers inactive.
+Inventory projections link to their raw response. Failed HTTP requests create no capacity observation; they must be monitored as job failures. A successful response does not establish source freshness. Projections retain the reported health-check timestamp and online status; hourly aggregation excludes missing, stale, future-dated or offline observations. The collector does not mark absent providers inactive.
 
 ## Still required before research use
 

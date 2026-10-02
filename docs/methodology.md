@@ -6,7 +6,7 @@ Akash is a transparent microstructure laboratory. Results do not estimate the gl
 
 The initial chain job archives block and execution-result pairs atomically with a restart checkpoint. Its range starts at an explicitly selected height; a checkpoint is not evidence of genesis coverage. Raw block primary keys prevent duplicate history. Failed fetches or validation leave the height unadvanced. A PostgreSQL advisory lock serializes writes per chain. Full version-aware marketplace decoding is pending: normalized orders, bids and leases are not populated by the archive job. Raw tx bytes, events and results are retained for later replay. Never label archived blocks as decoded market coverage.
 
-Inventory snapshots preserve each successful provider response and collection timestamp. Provider counts are observations of reporting providers, not the entire network. Missing inventory is unknown, not zero; disappearance is not provider exit. Collection time is not necessarily the source's measurement time. Failed normalization preserves the raw snapshot but rolls back its entire projection.
+Inventory snapshots preserve each successful provider response and collection timestamp. Provider counts are observations of reporting providers, not the entire network. Missing inventory is unknown, not zero; disappearance is not provider exit. Collection time is not the source observation time. Capacity projections retain `lastCheckDate` as `observed_at` and `isOnline` as `is_online`; the source date is a health-check freshness proxy, not proof of a GPU inventory measurement time. Missing/invalid source dates remain unknown. Failed normalization preserves the raw snapshot but rolls back its entire projection.
 
 ## Definitions
 
@@ -20,10 +20,12 @@ Console GPU counts are provider aggregates. `gpuModels` describes hardware and d
 
 ## Hourly job
 
-Capacity-v1 selects each provider's latest observation in the final 20 minutes before the hour ends. For the current hour, the cutoff is the job run time and the row is explicitly marked provisional. It includes only provider aggregates with active, available and total counts, records exclusions, and weights HHI by reported total GPUs. This is a sample of reporting capacity; it is neither an hourly average nor an assertion of full network coverage. The job is rerunnable with a deterministic key. Marketplace price/competition metrics remain absent until decoding and provenance checks pass.
+Capacity-v1 selects each provider's latest observation in the final 20 minutes before the hour ends. For the current hour, the cutoff is the job run time and the row is explicitly marked provisional. It first selects the latest collection per provider, then requires online status and a source health-check timestamp within the freshness window and no later than collection. This prevents fallback to a superseded online observation after an offline report. It includes only provider aggregates with active, available and total counts, records freshness/offline and incomplete-count exclusions separately, and weights HHI by reported total GPUs. This is a sample of reporting capacity; it is neither an hourly average nor an assertion of full network coverage. The job is rerunnable with a deterministic key. Marketplace price/competition metrics remain absent until decoding and provenance checks pass.
 
 ## Research design
 
 Compare hardware/configuration cohorts, preserve quantities, region requirements, lease duration and provider identity. Prices versus bidder count or capacity are descriptive associations: order attractiveness and restrictive requirements affect both competition and prices. Use observations preceding selection with an explicit freshness bound. Do not join a lease to capacity measured after its allocation. Include unsuccessful and zero-bid orders when studying selection.
 
 Future analysis should report sample sizes, missingness, cohort composition and sensitivity to freshness/cohort definitions. Begin with descriptive plots, then configuration/time controls and provider effects as supported by sample size. Event studies need pre-trend checks and a defensible comparison group. No predictive or causal conclusions are implemented in this scaffold.
+
+Provider display name and IP region are stored separately from the observed attribute list. `attributes.location` preserves IP-derived and declared location fields, and `region_source` identifies `console.ipRegion`; these are provider locations, not requested order regions. Raw snapshots retain their history.

@@ -1,0 +1,1 @@
+"""Compute market research platform."""
