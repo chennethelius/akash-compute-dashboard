@@ -1,0 +1,60 @@
+# Application-only template. Managed Postgres is external.
+# Replace every REPLACE_* marker privately before validation/deployment.
+# Never commit the rendered file with database credentials.
+version: "2.0"
+services:
+  web:
+    image: REPLACE_WEB_IMAGE_WITH_VERSION
+    env:
+      - API_BASE_URL=http://api:8000
+      - HOSTNAME=0.0.0.0
+    expose:
+      - port: 3000
+        as: 80
+        to:
+          - global: true
+  api:
+    image: REPLACE_BACKEND_IMAGE_WITH_VERSION
+    env:
+      - DATABASE_URL=REPLACE_MANAGED_POSTGRES_SQLALCHEMY_TLS_URL
+      - DEMO_MODE=false
+    expose:
+      - port: 8000
+        to:
+          - service: web
+  worker:
+    image: REPLACE_BACKEND_IMAGE_WITH_VERSION
+    command: [python, -m, compute_market.jobs.worker]
+    env:
+      - DATABASE_URL=REPLACE_MANAGED_POSTGRES_SQLALCHEMY_TLS_URL
+      - SNAPSHOT_INTERVAL_SECONDS=600
+profiles:
+  compute:
+    web:
+      resources:
+        cpu: {units: 0.5}
+        memory: {size: 512Mi}
+        storage: [{size: 1Gi}]
+    api:
+      resources:
+        cpu: {units: 0.5}
+        memory: {size: 512Mi}
+        storage: [{size: 1Gi}]
+    worker:
+      resources:
+        cpu: {units: 0.5}
+        memory: {size: 512Mi}
+        storage: [{size: 1Gi}]
+  placement:
+    akash:
+      pricing:
+        web: {denom: uact, amount: 1000}
+        api: {denom: uact, amount: 1000}
+        worker: {denom: uact, amount: 1000}
+deployment:
+  web:
+    akash: {profile: web, count: 1}
+  api:
+    akash: {profile: api, count: 1}
+  worker:
+    akash: {profile: worker, count: 1}

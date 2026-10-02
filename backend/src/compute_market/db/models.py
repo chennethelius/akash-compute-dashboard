@@ -1,9 +1,10 @@
 """Normalized contracts. Native prices are decimal; missing USD conversions remain null."""
+
 from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import uuid4
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, JSON, Numeric, String
+from sqlalchemy import BigInteger, DateTime, ForeignKey, JSON, Numeric
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -26,7 +27,9 @@ class RawBlock(Base):
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     block_payload: Mapped[dict] = mapped_column(JSON)
     results_payload: Mapped[dict] = mapped_column(JSON)
-    retrieved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    retrieved_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
     decoder_version: Mapped[str] = mapped_column(default="raw-v1")
 
 
@@ -42,14 +45,18 @@ class Checkpoint(Base):
     __tablename__ = "checkpoints"
     name: Mapped[str] = mapped_column(primary_key=True)
     height: Mapped[int] = mapped_column(BigInteger)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
 
 
 class JobRun(Base):
     __tablename__ = "job_runs"
     id: Mapped[str] = mapped_column(primary_key=True, default=identifier)
     job_name: Mapped[str]
-    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(default="running")
     error: Mapped[str | None]

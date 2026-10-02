@@ -1,4 +1,5 @@
 """Pure research definitions. Missing observations never imply zero."""
+
 from decimal import Decimal
 import math
 from statistics import median
@@ -34,4 +35,8 @@ def bid_dispersion(prices: Iterable[Decimal]) -> dict[str, Decimal | None]:
         return {"spread": None, "normalized_spread": None, "median": None}
     mid = median(values)
     spread = max(values) - min(values)
-    return {"spread": spread, "normalized_spread": spread / mid if mid else None, "median": mid}
+    return {
+        "spread": spread,
+        "normalized_spread": spread / mid if mid else None,
+        "median": mid,
+    }

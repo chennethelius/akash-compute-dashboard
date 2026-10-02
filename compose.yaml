@@ -1,0 +1,56 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: compute
+      POSTGRES_USER: compute
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-compute_local_only}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U compute -d compute"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  migrate:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://compute:${POSTGRES_PASSWORD:-compute_local_only}@db:5432/compute
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://compute:${POSTGRES_PASSWORD:-compute_local_only}@db:5432/compute
+      DEMO_MODE: ${DEMO_MODE:-true}
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  web:
+    build: ./apps/web
+    environment:
+      API_BASE_URL: http://api:8000
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - api
+  worker:
+    profiles: [collection]
+    build: ./backend
+    command: ["python", "-m", "compute_market.jobs.worker"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://compute:${POSTGRES_PASSWORD:-compute_local_only}@db:5432/compute
+      AKASH_CONSOLE_URL: ${AKASH_CONSOLE_URL:-https://console-api.akash.network}
+      SNAPSHOT_INTERVAL_SECONDS: ${SNAPSHOT_INTERVAL_SECONDS:-600}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+volumes:
+  postgres_data:

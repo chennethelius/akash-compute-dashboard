@@ -1,4 +1,5 @@
 """Console inventory is provider-wide; GPU model descriptions do not split counts."""
+
 from typing import Any
 from datetime import datetime, timezone
 import httpx
@@ -9,7 +10,9 @@ def fetch_inventory(base_url: str, client: httpx.Client) -> list[dict[str, Any]]
     response.raise_for_status()
     payload = response.json()
     if not isinstance(payload, list):
-        raise ValueError("Unexpected providers response: expected array; refusing partial snapshot")
+        raise ValueError(
+            "Unexpected providers response: expected array; refusing partial snapshot"
+        )
     return payload
 
 
@@ -36,4 +39,11 @@ def provider_capacity(provider: dict[str, Any]) -> dict[str, Any] | None:
         except ValueError:
             pass  # Raw response preserves invalid dates; projection stays unknown.
     online = provider.get("isOnline")
-    return {"observed_at": observed_at, "is_online": online if type(online) is bool else None, "provider_id": owner, "gpu_model": None, "scope": "provider_aggregate", **counts}
+    return {
+        "observed_at": observed_at,
+        "is_online": online if type(online) is bool else None,
+        "provider_id": owner,
+        "gpu_model": None,
+        "scope": "provider_aggregate",
+        **counts,
+    }
