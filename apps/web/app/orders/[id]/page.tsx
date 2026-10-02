@@ -38,7 +38,7 @@ export default async function Detail({
             <Metric
               label="Distinct bidders"
               value={num(o.bid_count)}
-              note="Observed before selection"
+              note="Distinct providers in indexed bids"
             />
             <Metric
               label="Selected provider"
@@ -48,7 +48,7 @@ export default async function Detail({
           </div>
           <Panel
             title="Bid timeline"
-            subtitle="Raw bid amount and denomination retained; compare only compatible units."
+            subtitle="Every indexed bid. Native amounts are per-block bundle prices; USD is shown only when a validated normalization exists."
           >
             {o.bids?.length ? (
               <div className="table-scroll">
@@ -56,21 +56,40 @@ export default async function Detail({
                   <thead>
                     <tr>
                       <th>Provider</th>
-                      <th>Amount</th>
-                      <th>Denomination</th>
+                      <th>Native amount / block</th>
+                      <th>Bundle USD / GPU-hour</th>
+                      <th>Height</th>
                       <th>Timestamp · UTC</th>
-                      <th>State</th>
+                      <th>State / selection</th>
                     </tr>
                   </thead>
                   <tbody>
                     {o.bids.map((b, i) => (
                       <tr key={`${b.provider_id}-${i}`}>
-                        <td>{b.provider_id}</td>
-                        <td className="mono">{num(b.price_amount, 6)}</td>
-                        <td>{b.price_denom}</td>
+                        <td>
+                          {b.provider_name && (
+                            <strong>{b.provider_name}</strong>
+                          )}
+                          <span className="block mono">{b.provider_id}</span>
+                        </td>
+                        <td className="mono">
+                          {b.native_price == null
+                            ? "—"
+                            : `${b.native_price} ${b.price_denom}`}
+                        </td>
+                        <td className="mono">{price(b.price_amount)}</td>
+                        <td className="mono">{num(b.created_height)}</td>
                         <td>{new Date(b.created_at).toISOString()}</td>
                         <td>
-                          <span className="badge">{b.state}</span>
+                          <span className="badge">{b.state || "Unknown"}</span>
+                          {b.is_winner && (
+                            <span className="badge">Selected</span>
+                          )}
+                          {b.closed_at && (
+                            <small className="block">
+                              Closed {b.closed_at}
+                            </small>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -79,6 +98,52 @@ export default async function Detail({
               </div>
             ) : (
               <Empty message="No bids are indexed for this order." />
+            )}
+          </Panel>
+          <Panel
+            title="Lease lifecycle"
+            subtitle="Observed lease creation and closure. Missing closure evidence does not establish current activity."
+          >
+            {o.leases?.length ? (
+              <div className="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Lease / provider</th>
+                      <th>Created height</th>
+                      <th>Created · UTC</th>
+                      <th>Closed · UTC</th>
+                      <th>Native award / block</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {o.leases.map((lease) => (
+                      <tr key={lease.id}>
+                        <td>
+                          <strong className="mono">{lease.id}</strong>
+                          <span className="block mono">
+                            {lease.provider_id}
+                          </span>
+                        </td>
+                        <td className="mono">{num(lease.created_height)}</td>
+                        <td>{new Date(lease.created_at).toISOString()}</td>
+                        <td>
+                          {lease.closed_at
+                            ? new Date(lease.closed_at).toISOString()
+                            : "No closure observed"}
+                        </td>
+                        <td className="mono">
+                          {lease.winning_bid_price == null
+                            ? "—"
+                            : `${lease.winning_bid_price} ${lease.price_denom}`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <Empty message="No lease lifecycle records are indexed for this order." />
             )}
           </Panel>
           <Panel
@@ -110,13 +175,28 @@ export default async function Detail({
           </Panel>
           <Panel
             title="Source evidence"
-            subtitle="Requested attributes and record provenance"
+            subtitle="Exact record evidence, including available transaction hashes and block heights. Unknown fields are not inferred."
           >
             <pre className="evidence">
               {JSON.stringify(
                 {
-                  attributes: o.attributes || {},
-                  provenance: o.provenance || {},
+                  order: {
+                    id: o.order_id,
+                    created_height: o.created_height ?? null,
+                    created_at: o.created_at,
+                    attributes: o.attributes || {},
+                    provenance: o.provenance || {},
+                  },
+                  bids:
+                    o.bids?.map((b) => ({
+                      id: b.id,
+                      provider_id: b.provider_id,
+                      created_height: b.created_height,
+                      native_price: b.native_price,
+                      denom: b.price_denom,
+                      provenance: b.provenance,
+                    })) ?? [],
+                  leases: o.leases ?? [],
                 },
                 null,
                 2,

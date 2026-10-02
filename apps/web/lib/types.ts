@@ -7,6 +7,7 @@ export type Filters = {
 export type Order = {
   provenance?: Record<string, unknown>;
   attributes?: Record<string, unknown>;
+  created_height?: number | null;
   order_id: string;
   created_at: string;
   gpu_model: string | null;
@@ -21,11 +22,28 @@ export type Order = {
   winner: string | null;
   price_denom?: string;
   bids?: {
+    id?: string;
     provider_id: string;
-    price_amount: number;
+    provider_name: string | null;
+    native_price: string | null;
+    price_amount: number | null;
     price_denom: string;
     created_at: string;
+    created_height: number | null;
+    closed_at?: string | null;
     state: string;
+    is_winner: boolean;
+    provenance: Record<string, unknown>;
+  }[];
+  leases?: {
+    id: string;
+    provider_id: string;
+    created_height: number | null;
+    created_at: string;
+    closed_at: string | null;
+    winning_bid_price: string | null;
+    price_denom: string;
+    provenance: Record<string, unknown>;
   }[];
   market_at_order?: {
     utilization: number | null;

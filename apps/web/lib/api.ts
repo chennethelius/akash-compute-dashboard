@@ -56,17 +56,32 @@ function map<T>(result: Result<any>, adapt: (raw: any) => T): Result<T> {
     data: result.data === null ? (null as T) : adapt(result.data),
   };
 }
-const order = (o: Raw): Order =>
+export const adaptOrder = (o: Raw): Order =>
   ({
     ...o,
     order_id: o.id,
     winner: o.winner,
     bids: o.bids?.map((b: Raw) => ({
-      provider_id: b.provider_name || b.provider_id,
-      price_amount: b.price,
+      id: b.id,
+      provider_id: b.provider_id,
+      provider_name: b.provider_name ?? null,
+      native_price: b.native_price == null ? null : String(b.native_price),
+      price_amount: b.price ?? null,
       price_denom: b.denom,
       created_at: b.created_at,
-      state: b.is_winner ? "Selected" : b.state,
+      created_height: b.created_height ?? null,
+      closed_at: b.closed_at ?? null,
+      state: b.state,
+      is_winner: b.is_winner ?? false,
+      provenance: b.provenance ?? {},
+    })),
+    leases: o.leases?.map((lease: Raw) => ({
+      ...lease,
+      winning_bid_price:
+        lease.winning_bid_price == null
+          ? null
+          : String(lease.winning_bid_price),
+      provenance: lease.provenance ?? {},
     })),
     market_at_order: o.market_at_order
       ? {
@@ -102,10 +117,10 @@ export async function timeseries(f: Filters) {
   );
 }
 export async function orders(f: Filters) {
-  return map<Order[]>(await get("orders", f), (rows: Raw[]) => rows.map(order));
+  return map<Order[]>(await get("orders", f), (rows: Raw[]) => rows.map(adaptOrder));
 }
 export async function orderDetail(id: string) {
-  return map<Order>(await get(`orders/${encodeURIComponent(id)}`), order);
+  return map<Order>(await get(`orders/${encodeURIComponent(id)}`), adaptOrder);
 }
 export async function providers(f: Filters) {
   return map<Provider[]>(await get("providers", f), (rows: Raw[]) =>
