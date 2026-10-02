@@ -125,3 +125,14 @@ def test_native_prices_are_not_mislabeled_usd_and_late_bids_excluded(client):
     assert len(row["bids"]) == 2
     assert row["bids"][0]["price"] is None
     assert row["winner"] == "a"
+
+
+def test_readiness_checks_database_independently_of_process_health(client):
+    api, sessions = client
+    assert api.get("/health").status_code == 200
+    assert api.get("/ready").status_code == 200
+    Order.__table__.drop(sessions.kw["bind"])
+    assert api.get("/health").status_code == 200
+    response = api.get("/ready")
+    assert response.status_code == 503
+    assert "No synthetic fallback" in response.json()["detail"]

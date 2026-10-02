@@ -52,5 +52,20 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+  chain-worker:
+    profiles: [chain-collection]
+    build: ./backend
+    command: ["python", "-m", "compute_market.jobs.chain_worker"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://compute:${POSTGRES_PASSWORD:-compute_local_only}@db:5432/compute
+      AKASH_RPC_URL: ${AKASH_RPC_URL:-}
+      AKASH_CHAIN_ID: ${AKASH_CHAIN_ID:-akashnet-2}
+      CHAIN_START_HEIGHT: ${CHAIN_START_HEIGHT:-0}
+      CHAIN_BATCH_SIZE: ${CHAIN_BATCH_SIZE:-20}
+      CHAIN_POLL_SECONDS: ${CHAIN_POLL_SECONDS:-30}
+      CHAIN_MAX_RETRY_SECONDS: ${CHAIN_MAX_RETRY_SECONDS:-300}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
 volumes:
   postgres_data:

@@ -36,3 +36,7 @@ The chain job archives raw blocks/results and checkpoints. A separate version-li
 Inventory collection stores provider-level totals with unknown `gpu_model`; model and region hourly metrics are not yet computed. Fresh hourly metrics require online status, collection freshness, and source `lastCheckDate` freshness. That source timestamp is a health-check proxy, not guaranteed inventory measurement time. Provider list inventory displays the latest observation in the selected interval; it is not itself a freshness-qualified market aggregate. Provider first/last seen denotes observation, not verified market entry/exit.
 
 Synthetic fixtures cover H100 over 2026-09-29/30; their aggregate timeseries has no regional attribution, so region-filtered timeseries is empty. Demonstration patterns are not empirical results.
+
+### Operational readiness
+
+`GET /health` reports process liveness. `GET /ready` queries the order, raw-block, capacity-snapshot, and block-projection tables; it returns 200 when reachable, or 503 on database/schema errors. This check runs even in demo mode and does not certify source freshness or complete migration/market coverage.

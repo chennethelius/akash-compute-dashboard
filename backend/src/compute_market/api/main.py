@@ -229,6 +229,14 @@ def health():
     return {"status": "ok", "mode": "demo" if is_demo() else "live"}
 
 
+@app.get("/ready")
+def ready(session: Session = Depends(get_session)):
+    # A successful process health check does not imply a usable database.
+    for model in (Order, RawBlock, CapacitySnapshot, BlockProjection):
+        session.execute(select(model).limit(0))
+    return {"status": "ready", "database": "reachable", "core_tables": "available"}
+
+
 @app.get("/v1/coverage")
 def coverage(session: Session = Depends(get_session)):
     if is_demo():

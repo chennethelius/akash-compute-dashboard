@@ -3,12 +3,14 @@
 from datetime import datetime, timezone
 from sqlalchemy import text
 
-from compute_market.db.models import BlockProjection, RawBlock
+from compute_market.db.models import BlockProjection, Checkpoint, RawBlock
 from compute_market.db.session import SessionLocal
 from compute_market.ingestion.chain.projector import project_actions
 
 
-def decode_archived(chain_id: str, start: int, end: int) -> dict:
+def decode_archived(
+    chain_id: str, start: int, end: int, *, checkpoint_name: str | None = None
+) -> dict:
     from compute_market.ingestion.chain.decoder import DECODER_VERSION, decode_block
 
     if start < 1 or end < start:
@@ -21,6 +23,13 @@ def decode_archived(chain_id: str, start: int, end: int) -> dict:
                     text("SELECT pg_advisory_xact_lock(hashtext(:name))"),
                     {"name": f"projection:{chain_id}"},
                 )
+            checkpoint = (
+                session.get(Checkpoint, checkpoint_name) if checkpoint_name else None
+            )
+            if checkpoint and height <= checkpoint.height:
+                continue
+            if checkpoint and height != checkpoint.height + 1:
+                raise ValueError("Projection checkpoint cannot skip a block")
             raw = session.get(RawBlock, (chain_id, height))
             if raw is None:
                 raise ValueError(
@@ -47,6 +56,20 @@ def decode_archived(chain_id: str, start: int, end: int) -> dict:
             report.event_count = len(result["actions"])
             report.projected_at = datetime.now(timezone.utc)
             raw.decoder_version = DECODER_VERSION
+            # Commit progress with the projection, never ahead of its transaction.
+            # Partial means attempted with exclusions, not complete coverage.
+            if checkpoint_name:
+                if checkpoint is None:
+                    session.add(
+                        Checkpoint(
+                            name=checkpoint_name,
+                            height=height,
+                            updated_at=report.projected_at,
+                        )
+                    )
+                else:
+                    checkpoint.height = height
+                    checkpoint.updated_at = report.projected_at
             summary[f"{status}_blocks"] += 1
             summary["actions"] += len(result["actions"])
     return summary

@@ -123,6 +123,7 @@ Offline Python tests use SQLite to verify application behavior. CI additionally 
 - [Source adapters and collection commands](docs/data-sources.md)
 - [Public hosting and data survival](docs/deployment.md)
 - [Milestones for a public site](docs/launch-plan.md)
+- [Managed database and continuous collection](docs/collection-operations.md)
 - [Interface design and review principles](docs/design.md)
 - [Research workflow](research/README.md)
 

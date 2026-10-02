@@ -116,7 +116,24 @@ def test_postgres_migration_archive_and_hourly_idempotency(monkeypatch):
         fixture_dir = Path(__file__).parent / "fixtures" / "akash"
         result = sample.load_sample(fixture_dir)
         assert sample.load_sample(fixture_dir) == result
+        from compute_market.jobs import chain_worker
+
+        monkeypatch.setattr(chain_worker, "SessionLocal", sessions)
+        monkeypatch.setattr(
+            chain_worker.ChainClient, "latest_height", lambda self: 28860263
+        )
+        worker_config = chain_worker.ChainConfig(
+            "https://fixture.invalid", "akashnet-2", 28860258, batch_size=3
+        )
+        # Uses already archived evidence; no network is involved.
+        assert chain_worker.collect_batch(worker_config)["end_height"] == 28860260
+        assert chain_worker.collect_batch(worker_config)["end_height"] == 28860263
+        assert chain_worker.collect_batch(worker_config)["actions"] == 0
         with sessions() as session:
+            assert (
+                session.get(Checkpoint, worker_config.checkpoint_name).height
+                == 28860263
+            )
             lease = session.scalar(
                 select(Lease).where(
                     Lease.order_id

@@ -2,11 +2,15 @@ import os
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from compute_market.db.models import Base
+from compute_market.db.config import database_url
 
 config = context.config
 if os.getenv("DATABASE_URL"):
     config.set_main_option(
-        "sqlalchemy.url", os.environ["DATABASE_URL"].replace("%", "%%")
+        "sqlalchemy.url",
+        database_url(os.environ["DATABASE_URL"])
+        .render_as_string(hide_password=False)
+        .replace("%", "%%"),
     )
 if context.is_offline_mode():
     context.configure(

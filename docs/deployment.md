@@ -21,7 +21,7 @@ Expose only the web service publicly. It calls the API on the server and proxies
 2. Configure database credentials through the hosting environment, not git or browser code.
 3. Run migrations against the new database, then launch API and web.
 4. Keep `DEMO_MODE=true` only for an explicitly synthetic preview. Set it to `false` to expose collected data. Run the separate decoder after archival; raw collection alone leaves normalized order tables empty. Inspect partial coverage before research use.
-5. Enable one worker instance. It immediately collects inventory, then repeats every ten minutes. Historical chain backfill remains an explicit bounded job.
+5. Enable one worker instance. It immediately collects inventory, then repeats every ten minutes. Continuous chain collection is a separate opt-in process with an explicit starting height; broad historical backfill remains deliberate. See [collection operations](collection-operations.md).
 6. Configure independent backups, test restoration to a separate database, and measure storage growth before broad backfill.
 7. Add uptime checks, job-failure alerts, database-size alerts, and a budget limit/alert. These external services are not provisioned here.
 

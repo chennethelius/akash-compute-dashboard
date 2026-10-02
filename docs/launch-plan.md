@@ -6,7 +6,7 @@ The current milestone is a working interface and a reproducible historical sampl
 
 Connect the agreed managed PostgreSQL database, apply migrations, and deploy a single inventory worker. Configure database recovery, an independent backup destination, a tested restore procedure, and alerts for failed or stale collection. Start inventory collection early: historical capacity before collection cannot generally be recovered from chain replay.
 
-Add a bounded incremental chain loop that archives then decodes, with retry/backoff, rate limits, gap detection, and distinct archival and projection checkpoints. Preserve a stalled block as a visible failure rather than advancing coverage past it. Choose and test a historical RPC source before scheduling backfills.
+The bounded incremental chain worker now archives then decodes, with retry/backoff, per-cycle request bounds, gap detection, and distinct archival and projection checkpoints. Failed blocks retain their position for retry; partial decode reports remain explicit. Configure it using [collection operations](collection-operations.md). Strict provider-specific request throttling and external alerts remain deployment work. Choose and test a historical RPC source before scheduling backfills.
 
 Exit condition: jobs recover from a deliberate interruption without duplication, source timestamps remain visible, and a backup has been restored to a separate test database. A hosted database without hosted workers does not collect data.
 
