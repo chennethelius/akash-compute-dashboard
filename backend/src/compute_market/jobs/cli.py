@@ -129,7 +129,7 @@ def snapshot_inventory(base_url: str) -> int:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Akash evidence collection; market decoding is pending"
+        description="Akash evidence archival, bounded marketplace decoding, and inventory"
     )
     commands = parser.add_subparsers(dest="command", required=True)
     chain = commands.add_parser("chain")
@@ -137,6 +137,12 @@ def main():
     chain.add_argument("--chain-id", default=os.getenv("AKASH_CHAIN_ID", "akashnet-2"))
     chain.add_argument("--start-height", type=int, required=True)
     chain.add_argument("--end-height", type=int)
+    decode = commands.add_parser(
+        "decode", help="Project supported events from archived blocks"
+    )
+    decode.add_argument("--chain-id", default=os.getenv("AKASH_CHAIN_ID", "akashnet-2"))
+    decode.add_argument("--start-height", type=int, required=True)
+    decode.add_argument("--end-height", type=int, required=True)
     inventory = commands.add_parser("inventory")
     inventory.add_argument(
         "--base-url",
@@ -184,13 +190,19 @@ def execute(args, parser):
         )
     elif args.command == "inventory":
         count = snapshot_inventory(args.base_url)
+    elif args.command == "decode":
+        from compute_market.jobs.decode import decode_archived
+
+        result = decode_archived(args.chain_id, args.start_height, args.end_height)
+        print(result)
+        return result["actions"]
     else:
         from compute_market.jobs.hourly import aggregate_capacity_hour
 
         print(aggregate_capacity_hour(datetime.fromisoformat(args.hour)))
         return 1
     print(
-        f"Processed {count} records. Chain archive is raw-only; normalized marketplace decoding is not implemented."
+        f"Processed {count} records. Archival and marketplace decoding are separate jobs; inspect /v1/coverage."
     )
     return count
 

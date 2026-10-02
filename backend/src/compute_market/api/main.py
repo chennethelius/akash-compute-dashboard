@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from compute_market.db.models import (
     Bid,
+    BlockProjection,
     CapacitySnapshot,
     Checkpoint,
     Lease,
@@ -117,21 +118,55 @@ def order_query(f):
     return query.order_by(Order.created_at.desc(), Order.id)
 
 
+def event_position(row):
+    """Order within a block when evidence provides execution coordinates."""
+    provenance = row.provenance or {}
+    phase = provenance.get("phase", "transaction")
+    phase_order = 0 if phase == "begin_block" else 1 if phase == "transaction" else 2
+    return (
+        row.created_height,
+        phase_order,
+        provenance.get("tx_index") or 0,
+        provenance.get("event_index") or 0,
+    )
+
+
+def utc_timestamp(value):
+    # SQLite preview storage loses tzinfo; all ingested timestamps are UTC.
+    if value is not None and value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
+
+
 def serialize_order(row, session):
-    bids = session.scalars(select(Bid).where(Bid.order_id == row.id)).all()
-    leases = session.scalars(select(Lease).where(Lease.order_id == row.id)).all()
+    bids = session.scalars(
+        select(Bid).where(Bid.order_id == row.id).order_by(Bid.created_height, Bid.id)
+    ).all()
+    leases = session.scalars(
+        select(Lease)
+        .where(Lease.order_id == row.id)
+        .order_by(Lease.created_height, Lease.id)
+    ).all()
     # Use only bids recorded before the first selection when it exists.
-    selection = min((lease.created_at for lease in leases), default=None)
-    eligible = [bid for bid in bids if selection is None or bid.created_at <= selection]
+    selection = min((event_position(lease) for lease in leases), default=None)
+    eligible = [
+        bid for bid in bids if selection is None or event_position(bid) <= selection
+    ]
     prices = [
         float(b.price_usd_normalized)
         for b in eligible
         if b.price_usd_normalized is not None
     ]
     winners = {lease.provider_id for lease in leases}
+    selected_bid_ids = {
+        lease.provenance.get("bid_id")
+        for lease in leases
+        if lease.provenance.get("bid_id")
+    }
     return dict(
         id=row.id,
-        created_at=row.created_at,
+        created_height=row.created_height,
+        created_at=utc_timestamp(row.created_at),
         gpu_model=row.gpu_model,
         gpu_count=row.gpu_count,
         cpu_units=row.cpu_units,
@@ -151,13 +186,32 @@ def serialize_order(row, session):
                 price=float(b.price_usd_normalized)
                 if b.price_usd_normalized is not None
                 else None,
-                native_price=str(b.price_amount),
+                native_price=b.provenance.get("native_price", str(b.price_amount)),
                 denom=b.price_denom,
-                created_at=b.created_at,
+                created_height=b.created_height,
+                created_at=utc_timestamp(b.created_at),
                 state=b.state,
-                is_winner=b.provider_id in winners,
+                is_winner=b.id in selected_bid_ids
+                if selected_bid_ids
+                else b.provider_id in winners,
+                provenance=b.provenance,
             )
             for b in bids
+        ],
+        leases=[
+            dict(
+                id=lease.id,
+                provider_id=lease.provider_id,
+                created_height=lease.created_height,
+                created_at=utc_timestamp(lease.created_at),
+                closed_at=utc_timestamp(lease.closed_at),
+                winning_bid_price=lease.provenance.get(
+                    "native_price", str(lease.winning_bid_price)
+                ),
+                price_denom=lease.price_denom,
+                provenance=lease.provenance,
+            )
+            for lease in leases
         ],
         market_at_order=dict(
             utilization=None,
@@ -192,6 +246,14 @@ def coverage(session: Session = Depends(get_session)):
             raw_blocks=session.scalar(select(func.count()).select_from(RawBlock)),
             normalized_orders=session.scalar(select(func.count()).select_from(Order)),
             raw_snapshots=session.scalar(select(func.count()).select_from(RawSnapshot)),
+            decoding=[
+                dict(status=status, blocks=count)
+                for status, count in session.execute(
+                    select(BlockProjection.status, func.count()).group_by(
+                        BlockProjection.status
+                    )
+                )
+            ],
             checkpoints=[
                 dict(name=c.name, height=c.height, updated_at=c.updated_at)
                 for c in checkpoints

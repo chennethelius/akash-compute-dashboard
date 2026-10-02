@@ -161,3 +161,18 @@ class MarketplaceEvent(Base):
     event_type: Mapped[str]
     payload: Mapped[dict] = mapped_column(JSON)
     decoder_version: Mapped[str]
+
+
+class BlockProjection(Base):
+    """Per-block coverage, separate from successful archival."""
+
+    __tablename__ = "block_projections"
+    chain_id: Mapped[str] = mapped_column(primary_key=True)
+    height: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    decoder_version: Mapped[str] = mapped_column(primary_key=True)
+    status: Mapped[str]
+    event_count: Mapped[int]
+    issues: Mapped[list] = mapped_column(JSON, default=list)
+    projected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )

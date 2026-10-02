@@ -105,6 +105,25 @@ def test_postgres_migration_archive_and_hourly_idempotency(monkeypatch):
                 session.scalar(select(func.count()).select_from(MarketMetricHourly))
                 == 1
             )
+        # Replay real public fixtures on PostgreSQL as well as SQLite. This
+        # verifies native NUMERIC prices and the projection coverage migration.
+        from decimal import Decimal
+        from compute_market.jobs import sample, decode
+        from compute_market.db.models import Lease
+
+        monkeypatch.setattr(sample, "SessionLocal", sessions)
+        monkeypatch.setattr(decode, "SessionLocal", sessions)
+        fixture_dir = Path(__file__).parent / "fixtures" / "akash"
+        result = sample.load_sample(fixture_dir)
+        assert sample.load_sample(fixture_dir) == result
+        with sessions() as session:
+            lease = session.scalar(
+                select(Lease).where(
+                    Lease.order_id
+                    == "akashnet-2/akash10czfq8xx8nh92ue7svg4t5ffs0lhsd6rxeaqwe/1790795508665/1/1"
+                )
+            )
+            assert lease.winning_bid_price == Decimal("265.753915000000000000")
     finally:
         engine.dispose()
         with admin.begin() as connection:
