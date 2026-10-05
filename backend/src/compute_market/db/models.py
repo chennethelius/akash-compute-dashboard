@@ -39,6 +39,10 @@ class RawSnapshot(Base):
     collected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     source: Mapped[str]
     payload: Mapped[dict] = mapped_column(JSON)
+    # Which source records the payload kept; "all" is the complete response.
+    retention_policy: Mapped[str] = mapped_column(default="all", server_default="all")
+    source_record_count: Mapped[int | None]
+    retained_record_count: Mapped[int | None]
 
 
 class Checkpoint(Base):

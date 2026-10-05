@@ -4,6 +4,26 @@ from typing import Any
 from datetime import datetime, timezone
 import httpx
 
+# "all" preserves the complete response. "online" keeps providers reporting
+# isOnline true; they were ~3% of records in October 2026. The policy is stored
+# with every snapshot so a filtered one is never mistaken for a small network.
+RETENTION_POLICIES = ("all", "online")
+
+
+def validate_retention(policy: str) -> str:
+    if policy not in RETENTION_POLICIES:
+        raise ValueError(
+            f"Unknown inventory retention policy {policy!r}; expected one of {RETENTION_POLICIES}"
+        )
+    return policy
+
+
+def retain_records(payload: list[dict[str, Any]], policy: str) -> list[dict[str, Any]]:
+    validate_retention(policy)
+    if policy == "online":
+        return [record for record in payload if record.get("isOnline") is True]
+    return list(payload)
+
 
 def fetch_inventory(base_url: str, client: httpx.Client) -> list[dict[str, Any]]:
     response = client.get(f"{base_url.rstrip('/')}/v1/providers")

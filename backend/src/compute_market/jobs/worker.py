@@ -8,13 +8,14 @@ from datetime import datetime, timedelta, timezone
 
 from compute_market.db.models import JobRun
 from compute_market.db.session import SessionLocal
+from compute_market.ingestion.inventory.client import validate_retention
 from compute_market.jobs.cli import snapshot_inventory
 from compute_market.jobs.hourly import aggregate_capacity_hour
 
 logger = logging.getLogger(__name__)
 
 
-def collect_once(base_url: str) -> None:
+def collect_once(base_url: str, retention: str = "all") -> None:
     with SessionLocal.begin() as session:
         run = JobRun(
             job_name="inventory-worker",
@@ -26,7 +27,7 @@ def collect_once(base_url: str) -> None:
         session.flush()
         run_id = run.id
     try:
-        count = snapshot_inventory(base_url)
+        count = snapshot_inventory(base_url, retention)
         hour = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
         aggregate_capacity_hour(hour - timedelta(hours=1))
         # The current hour is provisional and is recomputed each successful cycle.
@@ -45,12 +46,18 @@ def collect_once(base_url: str) -> None:
         run.records_processed = count
 
 
-def run_worker(base_url: str, interval_seconds: int, stop: threading.Event) -> None:
+def run_worker(
+    base_url: str,
+    interval_seconds: int,
+    stop: threading.Event,
+    retention: str = "all",
+) -> None:
     if interval_seconds < 30:
         raise ValueError("SNAPSHOT_INTERVAL_SECONDS must be at least 30")
+    validate_retention(retention)
     while not stop.is_set():
         try:
-            collect_once(base_url)
+            collect_once(base_url, retention)
             logger.info("Inventory collected and capacity metrics refreshed")
         except Exception:
             logger.exception(
@@ -76,6 +83,7 @@ def main() -> None:
         os.getenv("AKASH_CONSOLE_URL", "https://console-api.akash.network"),
         int(os.getenv("SNAPSHOT_INTERVAL_SECONDS", "600")),
         stop,
+        os.getenv("INVENTORY_RETENTION", "all"),
     )
 
 

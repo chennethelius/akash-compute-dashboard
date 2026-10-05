@@ -215,7 +215,7 @@ def test_worker_waits_after_failure_and_stops(monkeypatch):
             calls.append(seconds)
             self.stopped = True
 
-    def fail(url):
+    def fail(url, retention):
         calls.append(url)
         raise ValueError("transient failure")
 
@@ -263,3 +263,39 @@ def test_inventory_preserves_metadata_and_source_freshness(monkeypatch):
         provider_capacity({**payload[0], "lastCheckDate": "bad-date"})["observed_at"]
         is None
     )
+
+
+def test_inventory_online_retention_records_policy_and_counts(monkeypatch):
+    from sqlalchemy import select
+    from sqlalchemy.orm import sessionmaker
+    from compute_market.db.models import Base, CapacitySnapshot, Provider, RawSnapshot
+    from compute_market.ingestion.inventory.client import retain_records
+    from compute_market.jobs import cli
+
+    engine = sqlite_engine()
+    Base.metadata.create_all(engine)
+    sessions = sessionmaker(engine)
+    monkeypatch.setattr(cli, "SessionLocal", sessions)
+    online = {
+        "owner": "online",
+        "isOnline": True,
+        "lastCheckDate": "2026-01-01T00:00:00Z",
+        "stats": {"gpu": {"active": 1, "available": 1, "pending": 0, "total": 2}},
+    }
+    offline = {**online, "owner": "offline", "isOnline": False}
+    unknown = {**online, "owner": "unknown", "isOnline": None}
+    monkeypatch.setattr(
+        cli, "fetch_inventory", lambda base_url, http: [online, offline, unknown]
+    )
+    assert cli.snapshot_inventory("https://test", "online") == 1
+    with sessions() as session:
+        raw = session.scalar(select(RawSnapshot))
+        assert raw.retention_policy == "online"
+        assert (raw.source_record_count, raw.retained_record_count) == (3, 1)
+        assert [record["owner"] for record in raw.payload] == ["online"]
+        assert session.scalars(select(Provider.id)).all() == ["online"]
+        assert session.scalars(select(CapacitySnapshot.provider_id)).all() == ["online"]
+    with pytest.raises(ValueError):
+        retain_records([], "gpu")
+    with pytest.raises(ValueError):
+        cli.snapshot_inventory("https://test", "gpu")

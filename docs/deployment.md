@@ -8,7 +8,7 @@ The intended production architecture is a public Next.js service, private FastAP
 | --- | --- | --- | --- |
 | Web | `apps/web` | Image default | `API_BASE_URL`, `HOSTNAME=0.0.0.0` |
 | API | `backend` | Image default | `DATABASE_URL`, `DEMO_MODE=false` |
-| Worker | `backend` | `python -m compute_market.jobs.worker` | `DATABASE_URL`, `SNAPSHOT_INTERVAL_SECONDS=600` |
+| Worker | `backend` | `python -m compute_market.jobs.worker` | `DATABASE_URL`, `SNAPSHOT_INTERVAL_SECONDS=600`, `INVENTORY_RETENTION` |
 | Migration release job | `backend` | `alembic upgrade head` | `DATABASE_URL` |
 
 Expose only the web service publicly. It calls the API on the server and proxies CSV downloads. Database credentials belong only in the API, worker, and migration environment. No database credential uses a `NEXT_PUBLIC_` variable. Use a dedicated application database role for production and TLS when connecting to hosted Postgres. For migrations and collection jobs, start with a direct or session-pooled connection rather than assuming transaction pooling is compatible with all operations.

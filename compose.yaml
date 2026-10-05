@@ -49,6 +49,7 @@ services:
       DATABASE_URL: postgresql+psycopg://compute:${POSTGRES_PASSWORD:-compute_local_only}@db:5432/compute
       AKASH_CONSOLE_URL: ${AKASH_CONSOLE_URL:-https://console-api.akash.network}
       SNAPSHOT_INTERVAL_SECONDS: ${SNAPSHOT_INTERVAL_SECONDS:-600}
+      INVENTORY_RETENTION: ${INVENTORY_RETENTION:-all}
     depends_on:
       migrate:
         condition: service_completed_successfully

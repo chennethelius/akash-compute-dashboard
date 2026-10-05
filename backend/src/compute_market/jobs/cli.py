@@ -16,7 +16,13 @@ from compute_market.db.models import (
 )
 from compute_market.db.session import SessionLocal
 from compute_market.ingestion.chain.client import ChainClient
-from compute_market.ingestion.inventory.client import fetch_inventory, provider_capacity
+from compute_market.ingestion.inventory.client import (
+    RETENTION_POLICIES,
+    fetch_inventory,
+    provider_capacity,
+    retain_records,
+    validate_retention,
+)
 
 
 def now():
@@ -71,14 +77,24 @@ def archive_chain(
     return count
 
 
-def snapshot_inventory(base_url: str) -> int:
+def snapshot_inventory(base_url: str, retention: str = "all") -> int:
+    validate_retention(retention)
     with httpx.Client(timeout=30) as http:
-        payload = fetch_inventory(base_url, http)
+        source_payload = fetch_inventory(base_url, http)
+    payload = retain_records(source_payload, retention)
     collected_at = now()
     source = f"{base_url.rstrip('/')}/v1/providers"
-    # Keep evidence even if a future API schema fails normalization.
+    # Keep evidence even if a future API schema fails normalization. The policy
+    # and both counts make a filtered snapshot distinguishable from a small one.
     with SessionLocal.begin() as session:
-        raw = RawSnapshot(collected_at=collected_at, source=source, payload=payload)
+        raw = RawSnapshot(
+            collected_at=collected_at,
+            source=source,
+            payload=payload,
+            retention_policy=retention,
+            source_record_count=len(source_payload),
+            retained_record_count=len(payload),
+        )
         session.add(raw)
         session.flush()
         raw_id = raw.id
@@ -148,6 +164,12 @@ def main():
         "--base-url",
         default=os.getenv("AKASH_CONSOLE_URL", "https://console-api.akash.network"),
     )
+    inventory.add_argument(
+        "--retention",
+        choices=RETENTION_POLICIES,
+        default=os.getenv("INVENTORY_RETENTION", "all"),
+        help="Source records to keep: the complete response or online providers only",
+    )
     hourly = commands.add_parser("hourly")
     hourly.add_argument(
         "--hour", required=True, help="UTC hour, e.g. 2026-10-01T12:00:00+00:00"
@@ -189,7 +211,7 @@ def execute(args, parser):
             args.rpc_url, args.chain_id, args.start_height, args.end_height
         )
     elif args.command == "inventory":
-        count = snapshot_inventory(args.base_url)
+        count = snapshot_inventory(args.base_url, args.retention)
     elif args.command == "decode":
         from compute_market.jobs.decode import decode_archived
 

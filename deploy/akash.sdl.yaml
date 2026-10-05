@@ -28,6 +28,22 @@ services:
     env:
       - DATABASE_URL=REPLACE_MANAGED_POSTGRES_SQLALCHEMY_TLS_URL
       - SNAPSHOT_INTERVAL_SECONDS=600
+      # "all" keeps the complete provider response (~1.4 MB per snapshot);
+      # "online" keeps only providers reporting online (~3% of records).
+      - INVENTORY_RETENTION=all
+  # Bounded incremental chain archival + decoding. Keep CHAIN_START_HEIGHT
+  # stable across redeploys so the checkpoint name does not change.
+  chain-worker:
+    image: REPLACE_BACKEND_IMAGE_WITH_VERSION
+    command: [python, -m, compute_market.jobs.chain_worker]
+    env:
+      - DATABASE_URL=REPLACE_MANAGED_POSTGRES_SQLALCHEMY_TLS_URL
+      - AKASH_RPC_URL=REPLACE_RPC_URL_RETAINING_START_HEIGHT
+      - AKASH_CHAIN_ID=akashnet-2
+      - CHAIN_START_HEIGHT=REPLACE_CHAIN_START_HEIGHT
+      - CHAIN_BATCH_SIZE=20
+      - CHAIN_POLL_SECONDS=30
+      - CHAIN_MAX_RETRY_SECONDS=300
 profiles:
   compute:
     web:
@@ -45,12 +61,18 @@ profiles:
         cpu: {units: 0.5}
         memory: {size: 512Mi}
         storage: [{size: 1Gi}]
+    chain-worker:
+      resources:
+        cpu: {units: 0.5}
+        memory: {size: 512Mi}
+        storage: [{size: 1Gi}]
   placement:
     akash:
       pricing:
         web: {denom: uact, amount: 1000}
         api: {denom: uact, amount: 1000}
         worker: {denom: uact, amount: 1000}
+        chain-worker: {denom: uact, amount: 1000}
 deployment:
   web:
     akash: {profile: web, count: 1}
@@ -58,3 +80,5 @@ deployment:
     akash: {profile: api, count: 1}
   worker:
     akash: {profile: worker, count: 1}
+  chain-worker:
+    akash: {profile: chain-worker, count: 1}

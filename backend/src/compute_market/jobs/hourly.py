@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import select, text
 from compute_market.analytics.metrics import concentration, utilization
-from compute_market.db.models import CapacitySnapshot, MarketMetricHourly
+from compute_market.db.models import CapacitySnapshot, MarketMetricHourly, RawSnapshot
 from compute_market.db.session import SessionLocal
 
 
@@ -36,6 +36,20 @@ def aggregate_capacity_hour(hour: datetime, freshness_minutes: int = 20) -> dict
         latest = {}
         for row in rows:
             latest.setdefault(row.provider_id, row)
+        # Which snapshot populations the hour was computed from; a filtered
+        # policy means offline providers were unobserved rather than absent.
+        raw_ids = {r.raw_snapshot_id for r in latest.values() if r.raw_snapshot_id}
+        retention_policies = (
+            sorted(
+                session.scalars(
+                    select(RawSnapshot.retention_policy)
+                    .where(RawSnapshot.id.in_(raw_ids))
+                    .distinct()
+                ).all()
+            )
+            if raw_ids
+            else []
+        )
 
         def utc(value):
             # SQLite drops offsets; PostgreSQL retains them. Stored timestamps are UTC.
@@ -70,6 +84,7 @@ def aggregate_capacity_hour(hour: datetime, freshness_minutes: int = 20) -> dict
             "excluded_stale_or_offline_provider_count": len(latest) - len(fresh),
             "freshness_minutes": freshness_minutes,
             "scope": "provider_aggregate",
+            "inventory_retention_policies": retention_policies,
             "provisional": cutoff < hour_end,
             "observation_cutoff": cutoff.isoformat(),
             "concentration_basis": "reported_total_capacity",

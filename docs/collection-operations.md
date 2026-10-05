@@ -43,11 +43,23 @@ Do not change the start height to hide a stalled block. A deliberate new interva
 
 `job_runs` records each cycle's completion or failure. Chain-worker errors store exception type rather than URLs or credentials. A hard process kill can leave a running row unfinished; it does not advance the failed transaction's checkpoint. External monitoring of recent successful cycles is still required.
 
+## Storage and compute sizing
+
+Measured on 2026-10-02 from 336 archived blocks and 3 inventory snapshots in PostgreSQL 17, including indexes and TOAST compression:
+
+| Stream | Per unit | Per day |
+| --- | --- | --- |
+| Inventory, `INVENTORY_RETENTION=all`, 600 s | ~1.4 MB per snapshot (582 kB raw payload of 1,850 records + 1,850 capacity rows) | ~194 MB |
+| Inventory, `INVENTORY_RETENTION=online`, 900 s | ~50 kB per snapshot (59 online records, 30 with GPUs) | ~5 MB |
+| Chain archival at the tip (~14,400 blocks/day) | ~41 kB per block, dominated by `raw_blocks` | ~580 MB |
+
+Neon's free plan allows 0.5 GB per project and 100 compute-hours per month, suspends compute after five idle minutes, and suspends the project until the next cycle once either limit is hit. Each inventory cycle therefore costs about five minutes of awake compute: roughly 63 CU-hours per month at 900 s and 94 at 600 s, which leaves no margin for API reads. The chain worker never lets compute suspend. A free project fits `online` inventory collection at 900 s or slower for roughly three months and does not fit chain collection at all; usage-based plans or an object-storage archive are required beyond that.
+
 ## Local validation and hosting
 
 The optional Compose `chain-collection` profile starts the chain worker only when explicitly enabled. Configure RPC/start height first. It uses the local Compose database, not Neon. To collect both streams locally, enable both `collection` and `chain-collection` profiles. The default demo remains opt-in for collection.
 
-On the production host, run the same backend image as two separate worker services using the commands above, with `DATABASE_URL` supplied privately. The existing Akash template contains only the inventory worker; add a separately sized chain worker when its starting height and RPC have been chosen. Do not run a broad backfill automatically during deployment.
+On the production host, run the same backend image as two separate worker services using the commands above, with `DATABASE_URL` supplied privately. The Akash template defines both workers; render the chain worker's RPC and starting height privately, and omit that service until they are chosen and the database can absorb its growth. Do not run a broad backfill automatically during deployment.
 
 Before unattended production use: verify restart behavior on Postgres, test a separately stored backup restore, monitor source freshness and checkpoint lag, and measure storage growth on a modest contiguous window. Neither external monitoring nor a hosted backup destination is provisioned by this repository.
 
